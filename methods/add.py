@@ -7,9 +7,27 @@ manhwa['data'] = {}
 manhwa['sources'] = []
 manhwa['notes'] = []
 
+def titleCheck(db):
+    answers = inquirer.prompt([     
+            inquirer.Text('title', message="Please enter Title"),
+        ])
+
+    spinner = Halo(text="Checking title", spinner="dots")
+    spinner.start()
+
+    user_doc_ref = db.collection('titles').where('title', '==', answers["title"]).stream()
+    documents = [d for d in user_doc_ref]
+
+    if len(documents):
+        for document in documents:
+            spinner.fail('Title already taken, choose another title.')
+            titleCheck(db)
+    else:
+        manhwa["title"] = answers["title"]
+        spinner.stop()
+        spinner.clear()
 def initialQuestions():
     questions = [
-        inquirer.Text('title', message="Please enter Title"),
         inquirer.Editor('description', message="Please add Description"),
         inquirer.Editor('image', message="Please add the Image Link for the title, the bigger, the better."),
         inquirer.Checkbox(
@@ -31,7 +49,6 @@ def initialQuestions():
     ]
     answers = inquirer.prompt(questions)
 
-    manhwa["title"] = answers["title"]
     manhwa["description"] = answers["description"]
     manhwa["imageLink"] = answers["image"]
     manhwa["data"]["chapCount"] = answers["chaplen"]
@@ -81,7 +98,8 @@ def notesQuestion():
     else:
         return
 
-def add(db):
+def add(db, home):
+    titleCheck(db)
     initialQuestions()
     sourcesQuestion()
     notesQuestion()
@@ -92,3 +110,4 @@ def add(db):
     db.collection('titles').add(manhwa)
 
     spinner.succeed('Added a title to the database successfully.')
+    home()
